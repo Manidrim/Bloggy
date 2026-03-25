@@ -15,7 +15,7 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       -
         name: Checkout
@@ -31,7 +31,7 @@ jobs:
           load: true
           files: |
             compose.yaml
-            compose.override.yaml
+            compose.ci.yaml
           set: |
             php.cache-from=type=gha,scope=php-${{github.ref}}
             php.cache-from=type=gha,scope=php-refs/heads/main
@@ -41,7 +41,7 @@ jobs:
             pwa.cache-to=type=gha,scope=pwa-${{github.ref}},mode=max
       -
         name: Start services
-        run: docker compose -f compose.yaml -f compose.override.yaml up --wait --no-build
+        run: docker compose -f compose.yaml -f compose.ci.yaml up --wait --no-build
       -
         name: Playwright
         run: docker run --network host -w /app -v ./e2e:/app --rm --ipc=host mcr.microsoft.com/playwright:v1.50.0-noble /bin/sh -c 'npm i; npx playwright test;'
@@ -49,5 +49,5 @@ jobs:
         name: Debug Services
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs
+          docker compose -f compose.yaml -f compose.ci.yaml ps
+          docker compose -f compose.yaml -f compose.ci.yaml logs

@@ -1,0 +1,13 @@
+# CI environment override: vendor/node_modules pre-installed in images for fast container startup
+services:
+  php:
+    build:
+      context: ./api
+      target: frankenphp_ci
+    environment:
+      APP_SECRET: ci-testing-secret-not-for-production
+
+  pwa:
+    build:
+      context: ./pwa
+      target: prod

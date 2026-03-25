@@ -30,7 +30,7 @@ jobs:
           load: true
           files: |
             compose.yaml
-            compose.override.yaml
+            compose.ci.yaml
           set: |
             php.cache-from=type=gha,scope=php-${{github.ref}}
             php.cache-from=type=gha,scope=php-refs/heads/main
@@ -40,7 +40,7 @@ jobs:
             pwa.cache-to=type=gha,scope=pwa-${{github.ref}},mode=max
       -
         name: Start services
-        run: docker compose up --wait --no-build
+        run: docker compose -f compose.yaml -f compose.ci.yaml up --wait --no-build
       -
         name: Check HTTP reachability
         run: curl -v --fail-with-body http://localhost
@@ -69,8 +69,8 @@ jobs:
         name: Debug Services
         if: failure()
         run: |
-          docker compose ps
-          docker compose logs
+          docker compose -f compose.yaml -f compose.ci.yaml ps
+          docker compose -f compose.yaml -f compose.ci.yaml logs
   lint:
     name: Docker Lint
     runs-on: ubuntu-latest
