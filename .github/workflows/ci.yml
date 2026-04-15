@@ -61,7 +61,7 @@ jobs:
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
       -
         name: Run PHPUnit
-        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/phpunit --testdox
+        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/phpunit --testdox --debug 2>&1
       -
         name: Doctrine Schema Validator
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:schema:validate -v
@@ -80,6 +80,15 @@ jobs:
           echo "::endgroup::"
           echo "::group::PHP error log"
           docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'tail -200 /var/log/frankenphp.log 2>/dev/null' || true
+          echo "::endgroup::"
+          echo "::group::Mercure hub config (test env)"
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'bin/console -e test debug:container mercure.hub.default 2>&1 || true'
+          echo "::endgroup::"
+          echo "::group::Test env vars & kernel cache clear"
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'bin/console -e test cache:clear 2>&1 || true'
+          echo "::endgroup::"
+          echo "::group::Retry PHPUnit verbose"
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'bin/phpunit --testdox -v 2>&1 | head -500 || true'
           echo "::endgroup::"
   lint:
     name: Docker Lint
