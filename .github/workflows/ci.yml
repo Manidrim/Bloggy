@@ -61,16 +61,26 @@ jobs:
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
       -
         name: Run PHPUnit
-        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/phpunit
+        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/phpunit --testdox
       -
         name: Doctrine Schema Validator
-        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:schema:validate
+        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:schema:validate -v
       -
         name: Debug Services
         if: failure()
         run: |
+          echo "::group::Container status"
           docker compose -f compose.yaml -f compose.ci.yaml ps
-          docker compose -f compose.yaml -f compose.ci.yaml logs
+          echo "::endgroup::"
+          echo "::group::Container logs"
+          docker compose -f compose.yaml -f compose.ci.yaml logs --no-color
+          echo "::endgroup::"
+          echo "::group::Symfony logs"
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'ls -la var/log/ 2>/dev/null && cat var/log/*.log 2>/dev/null' || true
+          echo "::endgroup::"
+          echo "::group::PHP error log"
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'tail -200 /var/log/frankenphp.log 2>/dev/null' || true
+          echo "::endgroup::"
   lint:
     name: Docker Lint
     runs-on: ubuntu-latest

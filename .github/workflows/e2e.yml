@@ -44,10 +44,25 @@ jobs:
         run: docker compose -f compose.yaml -f compose.ci.yaml up --wait --no-build
       -
         name: Playwright
-        run: docker run --network host -w /app -v ./e2e:/app --rm --ipc=host mcr.microsoft.com/playwright:v1.50.0-noble /bin/sh -c 'npm i; npx playwright test;'
+        run: docker run --network host -w /app -v ./e2e:/app --rm --ipc=host mcr.microsoft.com/playwright:v1.50.0-noble /bin/sh -c 'npm ci || npm i; npx playwright test --reporter=list,html'
+      -
+        name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
       -
         name: Debug Services
         if: failure()
         run: |
+          echo "::group::Container status"
           docker compose -f compose.yaml -f compose.ci.yaml ps
-          docker compose -f compose.yaml -f compose.ci.yaml logs
+          echo "::endgroup::"
+          echo "::group::Container logs"
+          docker compose -f compose.yaml -f compose.ci.yaml logs --no-color
+          echo "::endgroup::"

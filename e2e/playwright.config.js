@@ -11,7 +11,9 @@ module.exports = defineConfig({
   expect: { timeout: 10000 },
   use: {
     ignoreHTTPSErrors: true,
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
     navigationTimeout: 30000,
     actionTimeout: 30000,
   },
