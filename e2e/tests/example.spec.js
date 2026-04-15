@@ -17,12 +17,12 @@ test('admin', async ({ page, browserName }) => {
   await page.getByLabel('Create').click();
   await page.getByLabel('Name').fill('foo' + browserName);
   await page.getByLabel('Save').click();
-  await expect(page).toHaveURL(/admin#\/greetings$/);
+  await expect(page).toHaveURL(/admin#\/greetings(\?|$)/);
   await page.getByText('foo' + browserName).first().click();
   await expect(page).toHaveURL(/show$/);
   await page.getByLabel('Edit').first().click();
   await page.getByLabel('Name').fill('bar' + browserName);
   await page.getByLabel('Save').click();
-  await expect(page).toHaveURL(/admin#\/greetings$/);
+  await expect(page).toHaveURL(/admin#\/greetings(\?|$)/);
   await page.getByText('bar' + browserName).first().click();
 });

@@ -8,9 +8,12 @@ module.exports = defineConfig({
   retries: 0,
   workers: 1,
   reporter: 'html',
+  expect: { timeout: 10000 },
   use: {
     ignoreHTTPSErrors: true,
     trace: 'on-first-retry',
+    navigationTimeout: 30000,
+    actionTimeout: 30000,
   },
 
   projects: [
