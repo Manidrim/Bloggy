@@ -60,21 +60,34 @@ jobs:
         name: Run migrations
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
       -
-        name: Check test files exist
+        name: Run PHPUnit
         run: |
           docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c '
-            echo "=== phpunit.xml.dist ===" && ls -la phpunit.xml.dist 2>&1 || true
-            echo "=== .env.test ===" && ls -la .env.test 2>&1 || true
-            echo "=== tests/ ===" && ls -la tests/ 2>&1 || true
-            echo "=== src/Mercure/ ===" && ls -la src/Mercure/ 2>&1 || true
-            echo "=== PHPUnit version ===" && bin/phpunit --version 2>&1 || true
+            echo "=== Environment ==="
+            echo "APP_ENV=$APP_ENV"
+            echo "=== Test files ==="
+            ls -la phpunit.xml.dist .env.test tests/ src/Mercure/ 2>&1 || true
+            echo "=== PHPUnit version ==="
+            bin/phpunit --version 2>&1
+            echo "=== Running tests ==="
+            bin/phpunit --testdox 2>&1
+            RESULT=$?
+            echo "=== PHPUnit exit code: $RESULT ==="
+            exit $RESULT
           '
-      -
-        name: Run PHPUnit
-        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/phpunit --testdox --debug 2>&1
       -
         name: Doctrine Schema Validator
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:schema:validate -v
+      -
+        name: Upload PHPUnit results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: phpunit-diagnostics
+          path: |
+            api/var/log/
+          retention-days: 3
+          if-no-files-found: ignore
       -
         name: Debug Services
         if: failure()
@@ -84,21 +97,6 @@ jobs:
           echo "::endgroup::"
           echo "::group::Container logs"
           docker compose -f compose.yaml -f compose.ci.yaml logs --no-color
-          echo "::endgroup::"
-          echo "::group::Symfony logs"
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'ls -la var/log/ 2>/dev/null && cat var/log/*.log 2>/dev/null' || true
-          echo "::endgroup::"
-          echo "::group::PHP error log"
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'tail -200 /var/log/frankenphp.log 2>/dev/null' || true
-          echo "::endgroup::"
-          echo "::group::Mercure hub config (test env)"
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'bin/console -e test debug:container mercure.hub.default 2>&1 || true'
-          echo "::endgroup::"
-          echo "::group::Test env vars & kernel cache clear"
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'bin/console -e test cache:clear 2>&1 || true'
-          echo "::endgroup::"
-          echo "::group::Retry PHPUnit verbose"
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'bin/phpunit --testdox -v 2>&1 | head -500 || true'
           echo "::endgroup::"
   lint:
     name: Docker Lint
