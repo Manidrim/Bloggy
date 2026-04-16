@@ -22,3 +22,20 @@ services:
 
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones
+
+when@test:
+    services:
+        # No-op publisher used by the MockHub below.
+        App\Mercure\NullPublisher: ~
+
+        # Override the Mercure hub with a no-op mock in tests so that
+        # entity persistence (which triggers Mercure publication via
+        # ApiResource(mercure: true)) does not require a real hub.
+        mercure.hub.default:
+            class: Symfony\Component\Mercure\MockHub
+            arguments:
+                $url: '%env(MERCURE_URL)%'
+                $jwtProvider: '@mercure.hub.default.jwt.provider'
+                $publisher: '@App\Mercure\NullPublisher'
+                $jwtFactory: '@mercure.hub.default.jwt.factory'
+                $publicUrl: '%env(MERCURE_PUBLIC_URL)%'
