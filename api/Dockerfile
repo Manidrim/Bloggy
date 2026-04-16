@@ -93,6 +93,14 @@ RUN set -eux; \
 	composer dump-autoload; \
 	chmod +x bin/console; sync;
 
+# Verify CI image has test infrastructure
+RUN set -eux; \
+	test -f phpunit.xml.dist || (echo "MISSING phpunit.xml.dist" && exit 1); \
+	test -d tests || (echo "MISSING tests/" && exit 1); \
+	test -f .env.test || (echo "MISSING .env.test" && exit 1); \
+	test -f src/Mercure/NullPublisher.php || (echo "MISSING NullPublisher" && exit 1); \
+	echo "All test files present in CI image"
+
 # Pre-install PHPUnit so simple-phpunit doesn't need network at test time
 RUN set -eux; \
 	bin/phpunit --version || true
