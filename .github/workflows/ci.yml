@@ -62,7 +62,8 @@ jobs:
       -
         name: Run PHPUnit
         run: |
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c '
+          set +e
+          OUTPUT=$(docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c '
             echo "=== Environment ==="
             echo "APP_ENV=$APP_ENV"
             echo "=== Test files ==="
@@ -71,10 +72,14 @@ jobs:
             bin/phpunit --version 2>&1
             echo "=== Running tests ==="
             bin/phpunit --testdox 2>&1
-            RESULT=$?
-            echo "=== PHPUnit exit code: $RESULT ==="
-            exit $RESULT
-          '
+          ' 2>&1)
+          RESULT=$?
+          echo "$OUTPUT"
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "$OUTPUT" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "PHPUnit exit code: $RESULT" >> $GITHUB_STEP_SUMMARY
+          exit $RESULT
       -
         name: Doctrine Schema Validator
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:schema:validate -v
