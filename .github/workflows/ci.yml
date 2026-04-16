@@ -30,7 +30,7 @@ jobs:
           load: true
           files: |
             compose.yaml
-            compose.ci.yaml
+            compose.override.yaml
           set: |
             php.cache-from=type=gha,scope=php-${{github.ref}}
             php.cache-from=type=gha,scope=php-refs/heads/main
@@ -40,7 +40,7 @@ jobs:
             pwa.cache-to=type=gha,scope=pwa-${{github.ref}},mode=max
       -
         name: Start services
-        run: docker compose -f compose.yaml -f compose.ci.yaml up --wait --no-build
+        run: docker compose up --wait --no-build
       -
         name: Check HTTP reachability
         run: curl -v --fail-with-body http://localhost
@@ -55,66 +55,22 @@ jobs:
         run: curl -vkI --fail-with-body https://localhost/.well-known/mercure?topic=test
       -
         name: Create test database
-        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:database:create
+        run: docker compose exec -T php bin/console -e test doctrine:database:create
       -
         name: Run migrations
-        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
+        run: docker compose exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
       -
         name: Run PHPUnit
-        run: |
-          set +e
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c '
-            echo "=== Environment ==="
-            echo "APP_ENV=$APP_ENV"
-            echo "=== Test files ==="
-            ls -la phpunit.xml.dist .env.test tests/ src/Mercure/ 2>&1 || true
-            echo "=== PHPUnit version ==="
-            bin/phpunit --version 2>&1
-            echo "=== Running tests ==="
-            bin/phpunit --testdox 2>&1
-          ' > /tmp/phpunit-output.txt 2>&1
-          RESULT=$?
-          cat /tmp/phpunit-output.txt
-          echo "PHPUnit exit code: $RESULT"
-          exit $RESULT
-      -
-        name: Save PHPUnit output
-        if: always()
-        run: |
-          mkdir -p /tmp/ci-diagnostics
-          cp /tmp/phpunit-output.txt /tmp/ci-diagnostics/ 2>/dev/null || echo "No PHPUnit output" > /tmp/ci-diagnostics/phpunit-output.txt
-          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c 'ls -laR tests/ 2>&1; echo "---"; cat phpunit.xml.dist 2>&1; echo "---"; cat .env.test 2>&1' > /tmp/ci-diagnostics/container-files.txt 2>&1 || true
-      -
-        name: Upload diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ci-diagnostics
-          path: /tmp/ci-diagnostics/
-          retention-days: 3
+        run: docker compose exec -T php bin/phpunit --testdox
       -
         name: Doctrine Schema Validator
-        run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:schema:validate -v
-      -
-        name: Upload PHPUnit results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: phpunit-diagnostics
-          path: |
-            api/var/log/
-          retention-days: 3
-          if-no-files-found: ignore
+        run: docker compose exec -T php bin/console -e test doctrine:schema:validate
       -
         name: Debug Services
         if: failure()
         run: |
-          echo "::group::Container status"
-          docker compose -f compose.yaml -f compose.ci.yaml ps
-          echo "::endgroup::"
-          echo "::group::Container logs"
-          docker compose -f compose.yaml -f compose.ci.yaml logs --no-color
-          echo "::endgroup::"
+          docker compose ps
+          docker compose logs --no-color
   lint:
     name: Docker Lint
     runs-on: ubuntu-latest
