@@ -61,6 +61,8 @@ jobs:
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
       -
         name: Run PHPUnit
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           set +e
           OUTPUT=$(docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c '
@@ -75,10 +77,9 @@ jobs:
           ' 2>&1)
           RESULT=$?
           echo "$OUTPUT"
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "$OUTPUT" >> $GITHUB_STEP_SUMMARY
-          echo '```' >> $GITHUB_STEP_SUMMARY
-          echo "PHPUnit exit code: $RESULT" >> $GITHUB_STEP_SUMMARY
+          # Post output as PR comment for debugging
+          BODY=$(printf '**CI PHPUnit Output (exit %d)**\n```\n%s\n```' "$RESULT" "$OUTPUT")
+          gh pr comment ${{ github.event.pull_request.number }} --body "$BODY" || true
           exit $RESULT
       -
         name: Doctrine Schema Validator
