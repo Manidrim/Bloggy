@@ -93,6 +93,10 @@ RUN set -eux; \
 	composer dump-autoload; \
 	chmod +x bin/console; sync;
 
+# Pre-install PHPUnit so simple-phpunit doesn't need network at test time
+RUN set -eux; \
+	bin/phpunit --version || true
+
 # Prod FrankenPHP image
 FROM frankenphp_base AS frankenphp_prod
 

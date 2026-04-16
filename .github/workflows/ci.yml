@@ -60,6 +60,16 @@ jobs:
         name: Run migrations
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/console -e test doctrine:migrations:migrate --no-interaction
       -
+        name: Check test files exist
+        run: |
+          docker compose -f compose.yaml -f compose.ci.yaml exec -T php sh -c '
+            echo "=== phpunit.xml.dist ===" && ls -la phpunit.xml.dist 2>&1 || true
+            echo "=== .env.test ===" && ls -la .env.test 2>&1 || true
+            echo "=== tests/ ===" && ls -la tests/ 2>&1 || true
+            echo "=== src/Mercure/ ===" && ls -la src/Mercure/ 2>&1 || true
+            echo "=== PHPUnit version ===" && bin/phpunit --version 2>&1 || true
+          '
+      -
         name: Run PHPUnit
         run: docker compose -f compose.yaml -f compose.ci.yaml exec -T php bin/phpunit --testdox --debug 2>&1
       -
