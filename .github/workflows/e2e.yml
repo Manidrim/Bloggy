@@ -15,7 +15,7 @@ jobs:
   tests:
     name: Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       -
         name: Checkout
@@ -41,13 +41,24 @@ jobs:
             pwa.cache-to=type=gha,scope=pwa-${{github.ref}},mode=max
       -
         name: Start services
-        run: docker compose -f compose.yaml -f compose.override.yaml up --wait --no-build
+        run: docker compose up --wait --no-build
       -
         name: Playwright
-        run: docker run --network host -w /app -v ./e2e:/app --rm --ipc=host mcr.microsoft.com/playwright:v1.50.0-noble /bin/sh -c 'npm i; npx playwright test;'
+        run: docker run --network host -w /app -v ./e2e:/app --rm --ipc=host mcr.microsoft.com/playwright:v1.50.0-noble /bin/sh -c 'npm ci || npm i; npx playwright test --reporter=list,html'
+      -
+        name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            e2e/playwright-report/
+            e2e/test-results/
+          retention-days: 7
+          if-no-files-found: ignore
       -
         name: Debug Services
         if: failure()
         run: |
           docker compose ps
-          docker compose logs
+          docker compose logs --no-color
